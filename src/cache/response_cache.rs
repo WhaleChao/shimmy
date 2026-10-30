@@ -150,6 +150,10 @@ impl ResponseCache {
         }
     }
 
+    fn occupied_bytes(cache: &HashMap<CacheKey, CachedResponse>) -> usize {
+        cache.values().map(|entry| entry.size_bytes).sum()
+    }
+
     /// Get cached response if available and not expired
     pub async fn get(&self, key: &CacheKey) -> Option<String> {
         if !self.config.enabled {
@@ -163,6 +167,8 @@ impl ResponseCache {
             if entry.is_expired(self.config.default_ttl) {
                 // Remove expired entry
                 cache.remove(key);
+                stats.entries = cache.len();
+                stats.total_size_bytes = Self::occupied_bytes(&cache);
                 stats.misses += 1;
                 debug!("Cache miss: expired entry");
                 None
@@ -192,7 +198,10 @@ impl ResponseCache {
         }
 
         let entry = CachedResponse::new(response, response_time);
-        let entry_size = entry.size_bytes;
+        let max_size_bytes = self.config.max_size_mb.saturating_mul(1024 * 1024);
+        if self.config.max_entries == 0 || entry.size_bytes > max_size_bytes {
+            return;
+        }
 
         let mut cache = self.cache.write().await;
         let mut stats = self.stats.write().await;
@@ -209,27 +218,29 @@ impl ResponseCache {
         {
             if let Some(lru_key) = self.find_lru_key(&cache).await {
                 if let Some(removed) = cache.remove(&lru_key) {
-                    stats.total_size_bytes -= removed.size_bytes;
+                    occupied -= removed.size_bytes;
                     stats.evictions += 1;
                     debug!("Evicted LRU cache entry");
                 }
             } else {
-                break; // No entries to evict
+                break;
             }
         }
 
-        // Insert new entry
-        cache.insert(key.clone(), entry);
         stats.entries = cache.len();
-        stats.total_size_bytes += entry_size;
+        stats.total_size_bytes = occupied;
 
         info!("Cached response for key: {:?}", key);
     }
 
     /// Find least recently used key for eviction
-    async fn find_lru_key(&self, cache: &HashMap<CacheKey, CachedResponse>) -> Option<CacheKey> {
+    fn find_lru_key(
+        cache: &HashMap<CacheKey, CachedResponse>,
+        inserted_key: &CacheKey,
+    ) -> Option<CacheKey> {
         cache
             .iter()
+            .filter(|(key, _)| *key != inserted_key)
             .min_by_key(|(_, entry)| entry.last_accessed)
             .map(|(key, _)| key.clone())
     }
@@ -244,12 +255,12 @@ impl ResponseCache {
         let mut stats = self.stats.write().await;
 
         let initial_count = cache.len();
-        let initial_size = stats.total_size_bytes;
+        let initial_size = Self::occupied_bytes(&cache);
 
         cache.retain(|_, entry| !entry.is_expired(self.config.default_ttl));
 
         // Recalculate size
-        stats.total_size_bytes = cache.values().map(|e| e.size_bytes).sum();
+        stats.total_size_bytes = Self::occupied_bytes(&cache);
         stats.entries = cache.len();
 
         let removed_count = initial_count - cache.len();
@@ -283,7 +294,7 @@ impl ResponseCache {
         let stats_guard = self.stats.read().await;
         let mut stats = (*stats_guard).clone();
         stats.entries = cache.len();
-        stats.total_size_bytes = cache.values().map(|e| e.size_bytes).sum();
+        stats.total_size_bytes = Self::occupied_bytes(&cache);
         stats
     }
 

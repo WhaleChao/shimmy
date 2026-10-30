@@ -37,6 +37,14 @@ minor-version increment.
 - Require deployment credentials, keep Compose host ports on loopback, and
   use a Kubernetes ClusterIP service with Secret-backed authentication (#221).
 
+### Security
+
+- Require `SHIMMY_API_KEY` for non-loopback HTTP binds and protect inference,
+  management, diagnostics and WebSocket routes when a key is configured.
+- Replace wildcard CORS with explicit `SHIMMY_ALLOWED_ORIGINS`.
+- Require deployment credentials, keep Compose host ports on loopback, and
+  use a Kubernetes ClusterIP service with Secret-backed authentication (#221).
+
 ### Changed
 
 - Use Airframe 0.4.4 and `airframe-observe` 0.1.3.
