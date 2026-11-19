@@ -1,5 +1,58 @@
 # Changelog
 
+## [Unreleased]
+
+## [2.6.7] — 2026-11-12 — Apple M1 Metal correctness
+
+- Consume published Airframe 0.4.6 as the engine; ShimmyTok, libfse, airframe-observe and shimmyjinja retain their existing versions.
+
+- Release the verified Metal correction in Shimmy 2.6.7 while preserving the historical 2.6.6 archive and its original support limits.
+- Certify 198/198 full-vector numerical comparisons (seven shards) on Apple M1 (Virtual), Apple Paravirtual Metal, macOS 15.8.2; frozen FP32 thresholds (max absolute 0.1, RMS 0.03) unchanged; all measured greedy decisions match.
+- Integrated JSON/SSE, usage, stop reasons, state/reset/cancellation, recovery and capacity rejection passed against the qualified production source.
+- Preserve full evidence and bounded scope in [candidate release ledger](docs/releases/apple-metal-m1-2026-11.md). Physical M4, Qwen3.5-9B M4, other unexecuted configurations remain NOT_RUN.
+- Historical intermittent 8K stall cause, macOS watchdog cleanup, WSL device issues, and unrelated experimental features remain open. Shimmy 2.6.7 crate, native binaries, versioned GHCR, Homebrew and Scoop were published/verified November 12, 2026; `latest` and npm were unchanged.
+
+## 2.6.6 postpublication licensing and distribution — 2026-11-07
+
+- Publish verified native Linux x86-64/ARM64, Windows x86-64 and macOS ARM64 binary bundles with component and third-party licenses, exact checksums and source identities.
+- Add the versioned GHCR 2.6.6 multiarch image with native startup/authentication checks; retain the existing latest tag. Add tested custom Homebrew and Scoop installation paths. No crate republishing or npm release.
+- Execute an Apple Paravirtual Metal compute/Qwen3-0.6B HTTP diagnostic; full-vector Metal/M4 and WSL stability remain uncertified. Preserve the active macOS Paste maintenance warning.
+
+- The existing libfse 0.1.4 archive is additionally licensed under [Apache-2.0](https://github.com/Michael-A-Kuykendall/airframe/blob/8efb1e7a830b0822cfc5ac1b121e149948d5ffe3/crates/libfse/LICENSE-GRANT-0.1.4.md), including commercial use, modification and redistribution without separate permission. Original crates, dependency locks and tags remain unchanged; see [stack licensing](LICENSING.md).
+
+
+## [2.6.6] — 2026-11-06
+
+- Exclude development housekeeping files and internal tracker references from crate archives; preserve runtime behavior and existing license rights.
+
+### Documentation and compatibility errata
+
+- Present versioned installation commands as consumer instructions while retaining the explicit crates-only distribution and platform support limits.
+
+- Correct the documented registry context default (2048, capped at model-native context) and acknowledge native transitive dependency build requirements; no capacity behavior or dependency changes.
+
+- Package the reviewed public guides and license/security/release documentation so crate README/template links resolve outside a Git checkout.
+
+- Correct current install, security, model, context, API, deployment and troubleshooting guidance against actual source; all release changes are recorded here.
+- Limit claims to exact dense FP32-reference fixtures, F32 KV and reference kernels. Exclude unsupported executors, INT4/experimental modes and unexecuted native GPU/Metal platforms; retain open WSL stability risks.
+- Correct compiled help/startup text that advertised unimplemented backend/MoE behavior, INT4 savings and driver-timeout fixes; flag names/defaults/parsers/control flow and inference computation remain unchanged.
+- Make crate-only distribution explicit: no automatic new binary assets, Docker images, Homebrew, Scoop or npm packages. Require exact-artifact human approval for every public operation.
+- Clarify chat-only SSE, authentication/origin requirements, placeholder model-management routes and local metrics versus unused remote telemetry code.
+- Remove stale/broken guide links, legacy feature commands and universal performance/support promises. Preserve component license/patent/attribution boundaries.
+- Response-cache occupancy derives from stored entries; replacement/expiry cannot leave stale byte counts; clears count as evictions. Oversized responses reject without evicting valid entries.
+
+
+- Pin Tokio 1.53.3; default and fast graphs pass active-advisory checks. Retain inactive findings explicitly.
+- Align Shimmy metadata with its existing Apache-2.0 LICENSE. Historical libfse archive restrictions are superseded for the licensor's rights by the additional grant above; archive bytes and historical metadata remain unchanged.
+
+
+- Coordinate Airframe 0.4.5 with the exact certified dense inference source and supporting packages.
+- Preserve prepared-prompt token IDs, typed admission errors, reset/warm-up error propagation, request isolation, JSON/SSE usage, stop and finish behavior.
+- Include approved rustls 0.23.46, rustls-webpki 0.103.16 and webpki-roots 1.0.10 dependency remediation.
+- Inactive lockfile vulnerabilities and informational warnings remain explicitly reported; this is not complete security clearance.
+- Existing authentication and safe bind defaults remain. Metal/M4 and unresolved WSL device stability are not certified. Public publication, binaries and Docker promotion require separate human approval.
+
+
 All notable changes to Shimmy will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -153,7 +206,6 @@ Shimmy's certification pipeline has been **consolidated from the old 5-gate + CH
 
 ### Infrastructure
 
-- **Beads issue tracking initialized** — `.beads/` Dolt-backed board for durable task tracking
 - **Cargo.lock refreshed** for path-sourced airframe patch
 
 ### Commits
@@ -1336,7 +1388,7 @@ The systematic engineering discipline established in v1.7.3 creates a **BULLETPR
 ### Free Forever Commitment
 Shimmy is committed to being free forever with no asterisks, no "free for now" periods, and no pivot to paid services. The MIT license ensures this commitment is legally binding.
 
-[Unreleased]: https://github.com/Michael-A-Kuykendall/shimmy/compare/v2.6.1...HEAD
+[Unreleased]: https://github.com/Michael-A-Kuykendall/shimmy/compare/v2.6.7...HEAD
 [2.6.1]: https://github.com/Michael-A-Kuykendall/shimmy/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/Michael-A-Kuykendall/shimmy/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/Michael-A-Kuykendall/shimmy/compare/v2.4.2...v2.5.0

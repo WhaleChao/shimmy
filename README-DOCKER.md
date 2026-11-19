@@ -1,137 +1,74 @@
-# 🐳 Docker Deployment
+# Docker — Shimmy 2.6.7
 
-Easy deployment with Docker Compose - just mount your models directory and go!
+The versioned image is `ghcr.io/michael-a-kuykendall/shimmy:2.6.7` for
+Linux x86-64 and ARM64. The published multiarchitecture OCI index is `sha256:a85d9dc05350a971096c2b7ec17e515707262189caf4aa3f580f5e319bf31fe9`. It contains the qualified default-Airframe binaries from
+[the GitHub release](https://github.com/Michael-A-Kuykendall/shimmy/releases/tag/v2.6.7),
+not a fast/non-inference build. The existing `latest` tag is unchanged.
 
-## Quick Start
+Image gates cover architecture, CLI, licensing, startup, health and API
+authentication. The published index and its referenced manifest/config/layer digests were anonymously verified. They do **not** certify container GPU inference, DGX Spark,
+Metal/M4 or WSL device-loss stability. Model loading is lazy: health alone does
+not prove model residency or numerical correctness.
 
-1. **Create your models directory:**
+## Start a protected server
+
 ```bash
-mkdir models
+docker pull ghcr.io/michael-a-kuykendall/shimmy:2.6.7
+export SHIMMY_API_KEY="$(openssl rand -hex 32)"
+docker run --rm --name shimmy \
+  -p 127.0.0.1:11435:11435 \
+  -e SHIMMY_API_KEY \
+  -v /absolute/path/to/models:/app/models:ro \
+  ghcr.io/michael-a-kuykendall/shimmy:2.6.7
+curl -f http://127.0.0.1:11435/health
+curl -f -H "Authorization: Bearer $SHIMMY_API_KEY" http://127.0.0.1:11435/v1/models
 ```
 
-2. **Download some models:**
-```bash
-# Example: Download a small model
-curl -L "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf" -o models/phi-3-mini.gguf
-```
+The image entrypoint is `shimmy`; omit a redundant `shimmy` when overriding
+arguments. For example, `docker run --rm ghcr.io/michael-a-kuykendall/shimmy:2.6.7 --version`.
+The default non-loopback listener requires `SHIMMY_API_KEY` (at least 16 printable
+ASCII characters, without spaces), even with a loopback host port mapping.
+Protect remote access with TLS. Never bake real credentials into an image.
 
-3. **Start Shimmy:**
-```bash
-docker-compose up -d
-```
+For an explicit fixture, append
+`--ctx 512 --kv-quant f32 serve --bind 0.0.0.0:11435 --model-path /app/models/model.gguf`.
+Configure vendor-specific device access separately; this is not a promise that
+GPU inference works without a compatible device/runtime.
 
-4. **Test the API:**
-```bash
-curl http://localhost:11434/v1/models
-```
+## Compose
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SHIMMY_PORT` | `11434` | Server port |
-| `SHIMMY_HOST` | `0.0.0.0` | Listen address |
-| `SHIMMY_BASE_GGUF` | `/app/models` | Models directory |
-
-### Volumes
-
-- `./models:/app/models` - Mount your local models directory
-- `shimmy-cache:/root/.cache` - Persistent cache for downloads
-
-### GPU Support
-
-For NVIDIA GPU support, ensure you have:
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed
-- Docker Compose v2.3+ with GPU support
-
-GPU access is automatically configured in the provided `docker-compose.yml`.
-
-## Usage Examples
-
-### Basic Usage
-```bash
-# Start server
-docker-compose up -d
-
-# Check logs
-docker-compose logs -f shimmy
-
-# Stop server
-docker-compose down
-```
-
-### Custom Configuration
 ```yaml
-# docker-compose.override.yml
 services:
   shimmy:
+    image: ghcr.io/michael-a-kuykendall/shimmy:2.6.7
     ports:
-      - "8080:11434"  # Use port 8080 instead
+      - "127.0.0.1:11435:11435"
     environment:
-      - SHIMMY_PORT=11434
-      - SHIMMY_LOG_LEVEL=debug
+      SHIMMY_API_KEY: "${SHIMMY_API_KEY:?set a private key first}"
+    volumes:
+      - "/absolute/path/to/models:/app/models:ro"
 ```
 
-### Multiple Models
-```bash
-# Your models directory structure
-models/
-├── phi-3-mini.gguf
-├── llama-2-7b.gguf
-└── mistral-7b.gguf
-```
+Run `docker compose config` before starting your saved file. Old cloud/deployment
+templates remain historical scaffolds; see [deployment scope](deploy/README.md).
 
-Shimmy will automatically discover and serve all `.gguf` models in the mounted directory.
+## Licensing and reproducibility
 
-## API Endpoints
+Component licenses, the libfse 0.1.4 additional Apache-2.0 grant, third-party
+notices and native source manifests are in `/usr/local/share/shimmy`.
+Debian package copyright/license files remain in `/usr/share/doc`;
+corresponding package sources are available from https://sources.debian.org/.
+See [licensing](LICENSING.md), [supported fixtures](docs/SUPPORTED_MODELS.md)
+and [security](SECURITY.md). Commercial use is permitted subject to applicable
+component licenses; the original libfse crate metadata is historically unchanged.
 
-Once running, Shimmy provides OpenAI-compatible endpoints:
-
-- `GET /v1/models` - List available models
-- `POST /v1/chat/completions` - Chat completions
-- `POST /v1/completions` - Text completions
-- `GET /health` - Health check
-
-## Troubleshooting
-
-### Container won't start
-```bash
-# Check logs
-docker-compose logs shimmy
-
-# Check if port is available
-netstat -tulpn | grep 11434
-```
-
-### Models not loading
-```bash
-# Verify models directory is mounted
-docker-compose exec shimmy ls -la /app/models
-
-# Check file permissions
-ls -la models/
-```
-
-### GPU not detected
-```bash
-# Check NVIDIA runtime
-docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
-
-# Verify Docker Compose GPU config
-docker-compose config
-```
-
-## Building from Source
-
-To build your own image:
+The manual-only Docker workflow prepares checksum-verified licensed release artifacts and validates both architecture images before publishing only versioned tags. The recorded x86-64 container checks ran on Linux/WSL; ARM64 container runtime validation used QEMU and does not establish native ARM64 GPU inference. It does not run Cargo publication, move product tags, publish
+crates or update `latest`. Local equivalent:
 
 ```bash
-# Build the image
-docker build -t shimmy:local .
-
-# Use local image in docker-compose.yml
-# Replace: image: ghcr.io/michael-a-kuykendall/shimmy:latest
-# With:    image: shimmy:local
+python3 .github/scripts/container_distribution.py prepare --arch amd64 --context build-context
+docker build -f deploy/Dockerfile -t shimmy:2.6.7-local build-context
+python3 .github/scripts/container_distribution.py test --arch amd64 --image shimmy:2.6.7-local --model /absolute/path/to/Qwen3-0.6B-Q4_K_M.gguf --output container-result.json
 ```
+
+For historical 2.6.6 images, use the explicit `:2.6.6` tag. The `latest` tag has intentionally not been moved to 2.6.7; always request the versioned tag above.
